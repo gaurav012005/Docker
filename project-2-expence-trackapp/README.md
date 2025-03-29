@@ -1,58 +1,161 @@
-![Language](https://img.shields.io/badge/language-Java%20-blue.svg)
-![Technologies](https://img.shields.io/badge/technologies-Spring_boot%20-green.svg)
-![Technologies](https://img.shields.io/badge/technologies-Spring_MVC%20-green.svg)
-![Technologies](https://img.shields.io/badge/technologies-Spring_Security%20-green.svg)
-![Technologies](https://img.shields.io/badge/technologies-Spring_Data_jpa%20-green.svg)
-![Technologies](https://img.shields.io/badge/technologies-Thymeleaf_&_Bootstrap%20-purple.svg)
+# 🚀 Expense Tracker App - Dockerized 🐳
 
-# Expenses-Tracker-WebApp
-## Overview
-The Expenses Tracker App is a robust financial management solution developed using cutting-edge technologies such as Spring Boot, Spring Security, and MySQL. With user authentication and authorization features, users can securely sign up, sign in, and perform CRUD operations on their expenses. The app's intuitive interface, powered by Thymeleaf and Bootstrap, ensures a seamless user experience. The filtering functionality allows users to efficiently organize and analyze their financial data. Explore the power of streamlined expense tracking and financial control with this feature-rich application.<br> (Screenshots below for more illustration)
+Welcome to the **Expense Tracker App**! This project is a full-stack web application built with **Spring Boot**, **Thymeleaf**, and **MySQL**, containerized using **Docker** for seamless deployment. 📦
 
-## Technologies Used
-- Java
-- Spring boot
-- Spring MVC
-- Spring Security
-- Spring Data (JPA)
-- MySQL
-- Thymeleaf
-- Bootstrap
+---
 
-## Features
-- **User Authentication and Authorization:** Securely sign up, sign in, and access the app with built-in authentication and authorization.
-- **CRUD Operations:** Perform essential financial tracking actions such as adding, reading, updating, and deleting expenses.
-- **Filtering:** Utilize the filtering feature to efficiently sort and view expenses based on various criteria.
+## 📌 Tech Stack
+- **Apache Maven** 🪶 - Build and dependency management
+- **Spring Boot** 🌱 - Backend framework
+- **Thymeleaf** 🖥️ - Templating engine for UI
+- **MySQL** 🛢️ - Database for storing expenses
+- **Docker & Docker Compose** 🐳 - Containerization and orchestration
 
-## Getting Started
-1. **Clone the Repository:**
-`git clone https://github.com/your-username/expenses-tracker.git`
+---
 
-2. **Configure Database:**
-Set up MySQL database and update the application.properties file with your database configuration.
+## 🛠️ Prerequisites
+Before running this project, ensure you have:
+- **Docker** installed 🐳
+- **Docker Compose** installed 📦
 
-3. **Build and Run:**
-Build the project using your preferred IDE or with Maven:
-`mvn clean install`.
+---
 
-4. **Run the application:**
-`java -jar target/expenses-tracker.jar`.
+## 🚀 Getting Started
+### 1️⃣ Clone the Repository
+```sh
+git clone https://github.com/gaurav012005/docker.git
+cd docker/project-2-expence-trackapp
+```
 
-5. **Access the App:**
-Open your web browser and navigate to `http://localhost:8080`.
+### 2️⃣ Build and Run with Docker
+#### **Using Docker Compose (Recommended)**
+```sh
+docker-compose up -d --build
+```
+This command will:
+✅ Pull the necessary images
+✅ Build the application
+✅ Start MySQL and Spring Boot app in separate containers
 
-## ScreenShots
-![Example Image](screenshots/1.png) <br>
-![Example Image](screenshots/2-2.png) <br>
-![Example Image](screenshots/3-3.png) <br>
-![Example Image](screenshots/4-4.png) <br>
-![Example Image](screenshots/5-5.png) <br>
-![Example Image](screenshots/6-6.png) <br>
-![Example Image](screenshots/7.png) <br>
-![Example Image](screenshots/8.png) <br>
+#### **Manual Build and Run**
+If you prefer to run manually:
+```sh
+# Build the image
+docker build -t expensetracker .
 
-## Contributions
-Contributions are welcome! If you find a bug or have suggestions for improvement, feel free to open an issue or create a pull request.
+# Run MySQL container
+docker run -d --name mysql-container -e MYSQL_ROOT_PASSWORD=Test@123 -e MYSQL_DATABASE=expenses_tracker -p 3306:3306 mysql:latest
 
-## License
-This project is licensed under the MIT License.
+# Run Expense Tracker app
+docker run -d --name expensetracker --link mysql-container:mysql -p 8080:8080 expensetracker
+```
+
+---
+
+## 📂 Project Structure
+```
+📁 project-2-expence-trackapp/
+ ┣ 📜 Dockerfile
+ ┣ 📜 docker-compose.yml
+ ┣ 📂 src/
+ ┃ ┣ 📂 main/java/com/expenseapp/
+ ┃ ┃ ┗ 📜 Application.java
+ ┃ ┣ 📂 main/resources/
+ ┃ ┃ ┣ 📜 application.properties
+ ┃ ┃ ┗ 📜 templates/
+ ┣ 📂 sql/
+ ┃ ┗ 📜 schema.sql
+ ┣ 📜 README.md
+```
+
+---
+
+## 📜 Dockerfile Explanation
+```dockerfile
+# Stage 1 - Build JAR
+FROM maven:3.8.3-openjdk-17 AS builder
+WORKDIR /app
+COPY . .
+RUN mvn clean package -DskipTests=true
+
+# Stage 2 - Run Application
+FROM openjdk:17-alpine
+WORKDIR /app
+COPY --from=builder /app/target/*.jar /app/expenseapp.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app/expenseapp.jar"]
+```
+- **Multi-stage build** reduces image size
+- **JAR built using Maven** and copied to a lightweight Java image
+- **Exposes port 8080** to serve the application
+
+---
+
+## 📜 Docker Compose Explanation
+```yaml
+version: "3.8"
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: Test@123
+      MYSQL_DATABASE: expenses_tracker
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - appbridge
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pTest@123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: always
+
+  mainapp:
+    image: expensetracker:v1
+    container_name: expensetracker
+    environment:
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/expenses_tracker?allowPublicKeyRetrieval=true&useSSL=false"
+      SPRING_DATASOURCE_PASSWORD: Test@123
+    ports:
+      - "8080:8080"
+    networks:
+      - appbridge
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: always
+
+networks:
+  appbridge:
+
+volumes:
+  mysql-data:
+```
+- **Two services**: MySQL and Spring Boot App
+- **MySQL container** with persistent storage
+- **Depends on health check** to ensure DB is ready before app starts
+
+---
+
+## 🎯 Usage
+- **Access the app** at: [`http://localhost:8080`](http://localhost:8080) 🌐
+- **Stop the containers:** `docker-compose down` 🛑
+- **View logs:** `docker logs -f expensetracker` 📜
+
+---
+
+## 🤝 Contributing
+Want to improve the project? Feel free to fork and contribute! 🏆
+
+---
+
+## 📬 Contact
+For queries, reach out to [Gaurav](mailto:your-email@example.com) 📧
+
+---
+
+### 🎉 Happy Coding! 🚀🐳
